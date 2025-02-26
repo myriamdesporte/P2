@@ -2,37 +2,35 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 
-def scrape_book(book_url):
-    """Fonction permettant d'extraire les données d'un livre à partir de l'URL produit"""
-    # Requête HTTP
-    response = requests.get(book_url)
+def create_soup_object(url):
+    """Crée un objet BeautifulSoup à partir d'une URL"""
+    response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
+    return soup
 
-    # Extraction des informations nécessaires
-    title = soup.find("h1").string
+def get_category_urls(limit = None):
+    """Récupère les URLS de toutes les catégories sur la page d'accueil"""
+    home_url = "http://books.toscrape.com/index.html"
+    soup = create_soup_object(home_url)
 
-    table = soup.find("table", class_="table table-striped")
-    universal_product_code = table.find_all("td")[0].string
-    price_including_tax = table.find_all("td")[3].string.strip("Â")
-    price_excluding_tax = table.find_all("td")[2].string.strip("Â")
+    category_urls = []
 
-    number_available = soup.find("p", class_="instock availability").text.strip()
+    for url in soup.select("div.side_categories ul li a"):
+        category_urls.append("http://books.toscrape.com/" + url["href"])
 
-    unordered_list = soup.find("ul", class_="breadcrumb")
-    category = unordered_list.find_all("li")[-2].text.strip()
+    return category_urls[1:limit] if limit else category_urls[1:]
 
-    return [book_url, universal_product_code, title, price_including_tax,
-            price_excluding_tax, number_available, category]
+    # À adapter en fonction des catégories souhaitées
 
 def get_books_urls_from_category(category_url, books_urls = None):
-    """Fonction récursive permettant de récupérer les URLS de tous les livres d'une catégorie"""
+    """Fonction récursive qui récupère les URLS de tous les livres d'une catégorie"""
 
     if books_urls is None:
         books_urls = []
-    response = requests.get(category_url)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = create_soup_object(category_url)
 
-    category = soup.find("h1").string
+    # Extraction du titre de la catégorie
+    category_name = soup.find("h1").string
 
     # Extraction des URLs des livres de la page actuelle
     for url in soup.select("h3 a"):
@@ -45,25 +43,42 @@ def get_books_urls_from_category(category_url, books_urls = None):
         next_page_url = category_url.rsplit("/", 1)[0] + "/" + next_page["href"]
         return get_books_urls_from_category(next_page_url, books_urls)
 
-    print(f"Il y a {len(books_urls)} livres dans la catégorie {category}.")
-    return books_urls
+    return category_name, books_urls
 
-# Scrape de tous les livres d'une catégorie donnée
-category_url = "http://books.toscrape.com/catalogue/category/books/travel_2/index.html" # Travel
-#category_url = "http://books.toscrape.com/catalogue/category/books/mystery_3/index.html" # Mystery
-list_category_urls = get_books_urls_from_category(category_url)
+def scrape_book(book_url):
+    """Extrait les données d'un livre à partir de l'URL produit"""
+    soup = create_soup_object(book_url)
 
-books_data = []
-for url in list_category_urls:
-    books_data.append(scrape_book(url))
+    # Extraction des informations nécessaires
+    title = soup.find("h1").string
 
-# Sauvegarde des données dans un fichier CSV
-filename = "books_data.csv"
-headers = ["Page url", "UPC", "Title", "Price Including Tax", "Price Excluding Tax", "Availability", "Category"]
+    table = soup.find("table", class_="table table-striped")
+    universal_product_code = table.find_all("td")[0].string
+    price_including_tax = table.find_all("td")[3].string.strip("Â")
+    price_excluding_tax = table.find_all("td")[2].string.strip("Â")
 
-with open(filename, "w") as file:
-    writer = csv.writer(file)
-    writer.writerow(headers)
-    writer.writerows(books_data)
+    number_available = soup.find("p", class_="instock availability").text.strip()
 
-print(f"Données extraites et sauvegardées dans {filename}")
+    breadcrumb = soup.find("ul", class_="breadcrumb")
+    category = breadcrumb.find_all("li")[-2].text.strip()
+
+    return [book_url, universal_product_code, title, price_including_tax,
+            price_excluding_tax, number_available, category]
+
+def save_book_data_in_csv_file(filename, data):
+    """Sauvegarde les données d'un livre dans un fichier csv"""
+    headers = ["Page url", "UPC", "Title", "Price Including Tax", "Price Excluding Tax", "Availability", "Category"]
+
+    with open(filename, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(headers)
+        writer.writerows(data)
+
+    print(f"Données de {len(data)} livre(s) extraite(s) et sauvegardée(s) dans {filename}")
+
+category_urls_list = get_category_urls(limit=3)
+
+for category_url in category_urls_list:
+    category_name, category_books_urls = get_books_urls_from_category(category_url)
+    data = [scrape_book(url) for url in category_books_urls]
+    save_book_data_in_csv_file(f"{category_name}.csv", data)
