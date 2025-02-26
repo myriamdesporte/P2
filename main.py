@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import csv
+import os
 
 def create_soup_object(url):
     """Crée un objet BeautifulSoup à partir d'une URL"""
@@ -21,6 +22,12 @@ def get_category_urls(limit = None):
     return category_urls[1:limit] if limit else category_urls[1:]
 
     # À adapter en fonction des catégories souhaitées
+
+def create_category_folder(category_name):
+    """Crée le dossier pour stocker les fichiers CSV et images d'une catégorie"""
+    folder_path = os.path.join("Books data", f"{category_name} data")
+    os.makedirs(folder_path, exist_ok=True)
+    return folder_path
 
 def get_books_urls_from_category(category_url, books_urls = None):
     """Fonction récursive qui récupère les URLS de tous les livres d'une catégorie"""
@@ -59,15 +66,24 @@ def scrape_book(book_url):
 
     number_available = soup.find("p", class_="instock availability").text.strip()
 
-    breadcrumb = soup.find("ul", class_="breadcrumb")
-    category = breadcrumb.find_all("li")[-2].text.strip()
+    category = soup.find("ul", class_="breadcrumb").find_all("li")[-2].text.strip()
+
+    image_relative_url = soup.find("div", class_="item active").find("img")["src"]
+    image_url = image_relative_url.replace("../../", "http://books.toscrape.com/")
 
     return [book_url, universal_product_code, title, price_including_tax,
-            price_excluding_tax, number_available, category]
+            price_excluding_tax, number_available, category, image_url]
 
 def save_book_data_in_csv_file(filename, data):
     """Sauvegarde les données d'un livre dans un fichier csv"""
-    headers = ["Page url", "UPC", "Title", "Price Including Tax", "Price Excluding Tax", "Availability", "Category"]
+    headers = ["Page url",
+               "UPC",
+               "Title",
+               "Price Including Tax",
+               "Price Excluding Tax",
+               "Availability",
+               "Category",
+               "Image url"]
 
     with open(filename, "w", newline="") as file:
         writer = csv.writer(file)
@@ -76,9 +92,16 @@ def save_book_data_in_csv_file(filename, data):
 
     print(f"Données de {len(data)} livre(s) extraite(s) et sauvegardée(s) dans {filename}")
 
+# Récupérer les urls des catégories
 category_urls_list = get_category_urls(limit=3)
 
 for category_url in category_urls_list:
     category_name, category_books_urls = get_books_urls_from_category(category_url)
+
+    # Créer le dossier de la catégorie
+    category_folder = create_category_folder(category_name)
+
+    # Scraper les livres et enregistrer les données
     data = [scrape_book(url) for url in category_books_urls]
-    save_book_data_in_csv_file(f"{category_name}.csv", data)
+    csv_filename = os.path.join(category_folder,f"{category_name}.csv" )
+    save_book_data_in_csv_file(csv_filename, data)
