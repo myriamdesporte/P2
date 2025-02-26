@@ -10,7 +10,7 @@ def create_soup_object(url):
     return soup
 
 def get_category_urls(limit = None):
-    """Récupère les URLS de toutes les catégories sur la page d'accueil"""
+    """Récupère les URLS de toutes les catégories (ou une partie) sur la page d'accueil"""
     home_url = "http://books.toscrape.com/index.html"
     soup = create_soup_object(home_url)
 
@@ -20,14 +20,6 @@ def get_category_urls(limit = None):
         category_urls.append("http://books.toscrape.com/" + url["href"])
 
     return category_urls[1:limit] if limit else category_urls[1:]
-
-    # À adapter en fonction des catégories souhaitées
-
-def create_category_folder(category_name):
-    """Crée le dossier pour stocker les fichiers CSV et images d'une catégorie"""
-    folder_path = os.path.join("Books data", f"{category_name} data")
-    os.makedirs(folder_path, exist_ok=True)
-    return folder_path
 
 def get_books_urls_from_category(category_url, books_urls = None):
     """Fonction récursive qui récupère les URLS de tous les livres d'une catégorie"""
@@ -52,7 +44,22 @@ def get_books_urls_from_category(category_url, books_urls = None):
 
     return category_name, books_urls
 
-def scrape_book(book_url):
+def create_images_folder_by_category(category_name):
+    """Crée le dossier pour stocker les fichiers images d'une catégorie"""
+    folder_path = os.path.join("Books data", "Images", f"{category_name}")
+    os.makedirs(folder_path, exist_ok=True)
+    return folder_path
+
+def download_book_image(image_url, save_path):
+    """Télécharge et sauvegarde l'image d'un livre"""
+    response = requests.get(image_url)
+
+    with open(save_path, "wb") as file:
+        file.write(response.content)
+
+    return
+
+def scrape_book(book_url, category_folder, category_name):
     """Extrait les données d'un livre à partir de l'URL produit"""
     soup = create_soup_object(book_url)
 
@@ -66,16 +73,22 @@ def scrape_book(book_url):
 
     number_available = soup.find("p", class_="instock availability").text.strip()
 
-    category = soup.find("ul", class_="breadcrumb").find_all("li")[-2].text.strip()
+    category = category_name
 
     image_relative_url = soup.find("div", class_="item active").find("img")["src"]
     image_url = image_relative_url.replace("../../", "http://books.toscrape.com/")
+
+    # Téléchargement de l'image
+    image_filename = f"{title}.jpg"
+    image_path = os.path.join(category_folder, image_filename)
+    download_book_image(image_url, image_path)
 
     return [book_url, universal_product_code, title, price_including_tax,
             price_excluding_tax, number_available, category, image_url]
 
 def save_book_data_in_csv_file(filename, data):
     """Sauvegarde les données d'un livre dans un fichier csv"""
+
     headers = ["Page url",
                "UPC",
                "Title",
@@ -85,6 +98,9 @@ def save_book_data_in_csv_file(filename, data):
                "Category",
                "Image url"]
 
+    # Crée le dossier parent si nécessaire
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
     with open(filename, "w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(headers)
@@ -92,16 +108,34 @@ def save_book_data_in_csv_file(filename, data):
 
     print(f"Données de {len(data)} livre(s) extraite(s) et sauvegardée(s) dans {filename}")
 
+# Création du fichier Extracted_data
+extracted_data_folder = os.path.join("Books data", "Extracted data")
+os.makedirs(extracted_data_folder, exist_ok=True)
+
 # Récupérer les urls des catégories
-category_urls_list = get_category_urls(limit=3)
+category_urls_list = get_category_urls(limit=2)
 
 for category_url in category_urls_list:
     category_name, category_books_urls = get_books_urls_from_category(category_url)
 
-    # Créer le dossier de la catégorie
-    category_folder = create_category_folder(category_name)
+    # Créer le dossier images de la catégorie
+    category_images_folder = create_images_folder_by_category(category_name)
 
     # Scraper les livres et enregistrer les données
-    data = [scrape_book(url) for url in category_books_urls]
-    csv_filename = os.path.join(category_folder,f"{category_name}.csv" )
+    data = [scrape_book(url, category_images_folder, category_name)
+            for url in category_books_urls]
+
+    csv_filename = os.path.join(extracted_data_folder, f"{category_name}.csv")
     save_book_data_in_csv_file(csv_filename, data)
+
+
+
+
+
+
+
+
+
+
+
+

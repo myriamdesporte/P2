@@ -172,3 +172,6 @@ cython_debug/
 
 # CSV files
 *.csv
+
+# Dossier contenant la data
+Books data/
