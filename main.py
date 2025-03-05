@@ -94,7 +94,27 @@ def scrape_book(book_url, category_folder, category_name):
         .text.strip()
     )
 
+    description = soup.find('div', id='product_description')
+    product_description = description.find_next('p').text
+
     category = category_name
+
+    rating_tag = soup.find('p', class_='star-rating')
+    review_rating = rating_tag['class'][1] if rating_tag else None
+
+    match review_rating:
+        case "One":
+            review_stars = "★☆☆☆☆"
+        case "Two":
+            review_stars = "★★☆☆☆"
+        case "Three":
+            review_stars = "★★★☆☆"
+        case "Four":
+            review_stars = "★★★★☆"
+        case "Five":
+            review_stars = "★★★★★"
+        case _:
+            review_stars = "Aucune note"
 
     image_relative_url = (
         soup.find("div", class_="item active")
@@ -109,8 +129,18 @@ def scrape_book(book_url, category_folder, category_name):
     image_path = os.path.join(category_folder, image_filename)
     download_book_image(image_url, image_path)
 
-    return [book_url, universal_product_code, title, price_including_tax,
-            price_excluding_tax, number_available, category, image_url]
+    return [
+        book_url,
+        universal_product_code,
+        title,
+        price_including_tax,
+        price_excluding_tax,
+        number_available,
+        product_description,
+        category,
+        review_stars,
+        image_url
+    ]
 
 
 def save_book_data_in_csv_file(filename, data):
@@ -122,13 +152,15 @@ def save_book_data_in_csv_file(filename, data):
                "Price Including Tax",
                "Price Excluding Tax",
                "Availability",
+               "Description",
                "Category",
+               "Review rating",
                "Image url"]
 
     # Crée le dossier parent si nécessaire
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-    with open(filename, "w", newline="") as file:
+    with open(filename, "w", newline="", encoding="utf-8-sig") as file:
         writer = csv.writer(file)
         writer.writerow(headers)
         writer.writerows(data)
@@ -153,13 +185,21 @@ def main():
         )
 
         # Créer le dossier images de la catégorie
-        category_images_folder = create_images_folder_by_category(category_name)
+        category_images_folder = (
+            create_images_folder_by_category(category_name)
+        )
 
         # Scraper les livres et enregistrer les données
-        data = [scrape_book(url, category_images_folder, category_name)
-                for url in category_books_urls]
+        data = [
+            scrape_book(url, category_images_folder, category_name)
+            for url in category_books_urls
+        ]
 
-        csv_filename = os.path.join(extracted_data_folder, f"{category_name}.csv")
+        csv_filename = os.path.join(
+            extracted_data_folder, f"{category_name}.csv"
+        )
+
         save_book_data_in_csv_file(csv_filename, data)
+
 
 main()
