@@ -4,6 +4,7 @@ import csv
 import os
 from PIL import Image
 from io import BytesIO
+#from slugify import slugify
 
 
 def create_soup_object(url):
@@ -80,9 +81,11 @@ def download_and_process_image(
     image.save(save_path, "JPEG", quality=quality)
 
 
-def clean_filename(filename):
+def clean_text(text):
     """Supprime le caractère problématique dans un nom de fichier"""
-    return filename.replace('/', '-')
+    #text = slugify(text)
+    text = text.replace('/', '-')
+    return text
 
 
 def scrape_book(book_url, category_name):
@@ -102,8 +105,13 @@ def scrape_book(book_url, category_name):
         .text.strip()
     )
 
+    print(category_name, title)
+
     description = soup.find('div', id='product_description')
-    product_description = description.find_next('p').text
+    if description:
+        product_description = description.find_next('p').text
+    else:
+        product_description = "Aucune description disponible"
 
     category = category_name
 
@@ -176,7 +184,7 @@ def save_book_data_in_csv_file(filename, data):
 
 def save_image(image_url, category_folder, title):
     # Télécharge l'image dans le dossier de la catégorie
-    image_filename = f"{clean_filename(title)}.jpg"
+    image_filename = f"{clean_text(title)}.jpg"
     image_path = os.path.join(category_folder, image_filename)
     download_and_process_image(image_url, image_path)
 
@@ -187,7 +195,7 @@ def main():
     os.makedirs(extracted_data_folder, exist_ok=True)
 
     # Récupérer les urls des catégories
-    category_urls_list = get_category_urls(limit=2)
+    category_urls_list = get_category_urls(limit=None)
 
     for category_url in category_urls_list:
         category_name, category_books_urls = (
