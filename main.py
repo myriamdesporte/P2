@@ -85,7 +85,7 @@ def clean_filename(filename):
     return filename.replace('/', '-')
 
 
-def scrape_book(book_url, category_folder, category_name):
+def scrape_book(book_url, category_name):
     """Extrait les données d'un livre à partir de l'URL produit"""
     soup = create_soup_object(book_url)
 
@@ -132,11 +132,6 @@ def scrape_book(book_url, category_folder, category_name):
         "../../", "http://books.toscrape.com/"
     )
 
-    # Téléchargement de l'image
-    image_filename = f"{clean_filename(title)}.jpg"
-    image_path = os.path.join(category_folder, image_filename)
-    download_and_process_image(image_url, image_path)
-
     return [
         book_url,
         universal_product_code,
@@ -179,13 +174,20 @@ def save_book_data_in_csv_file(filename, data):
     )
 
 
+def save_image(image_url, category_folder, title):
+    # Télécharge l'image dans le dossier de la catégorie
+    image_filename = f"{clean_filename(title)}.jpg"
+    image_path = os.path.join(category_folder, image_filename)
+    download_and_process_image(image_url, image_path)
+
+
 def main():
     # Création du fichier Extracted_data
     extracted_data_folder = os.path.join("Books data", "Extracted data")
     os.makedirs(extracted_data_folder, exist_ok=True)
 
     # Récupérer les urls des catégories
-    category_urls_list = get_category_urls(limit=5)
+    category_urls_list = get_category_urls(limit=2)
 
     for category_url in category_urls_list:
         category_name, category_books_urls = (
@@ -197,11 +199,19 @@ def main():
             create_images_folder_by_category(category_name)
         )
 
-        # Scraper les livres et enregistrer les données
-        data = [
-            scrape_book(url, category_images_folder, category_name)
-            for url in category_books_urls
-        ]
+        # Extraction des données et traitement des livres
+        data = []
+        for url in category_books_urls:
+            # Extraction des données du livre
+            book_data = scrape_book(url, category_name)
+
+            # Enregistrement de l'image
+            save_image(book_data[-1], category_images_folder, book_data[2])
+
+            # Ajout des données du livre à la liste
+            data.append(book_data)
+
+        # Enregistrer les données dans un fichier CSV
 
         csv_filename = os.path.join(
             extracted_data_folder, f"{category_name}.csv"
