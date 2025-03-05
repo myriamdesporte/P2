@@ -22,7 +22,7 @@ def get_category_urls(limit=None):
     for url in soup.select("div.side_categories ul li a"):
         category_urls.append("http://books.toscrape.com/" + url["href"])
 
-    return category_urls[4:limit] if limit else category_urls[1:]
+    return category_urls[1:limit] if limit else category_urls[1:]
 
 
 def get_books_urls_from_category(category_url, books_urls=None):
@@ -139,24 +139,27 @@ def save_book_data_in_csv_file(filename, data):
     )
 
 
-# Création du fichier Extracted_data
-extracted_data_folder = os.path.join("Books data", "Extracted data")
-os.makedirs(extracted_data_folder, exist_ok=True)
+def main():
+    # Création du fichier Extracted_data
+    extracted_data_folder = os.path.join("Books data", "Extracted data")
+    os.makedirs(extracted_data_folder, exist_ok=True)
 
-# Récupérer les urls des catégories
-category_urls_list = get_category_urls(limit=5)
+    # Récupérer les urls des catégories
+    category_urls_list = get_category_urls(limit=2)
 
-for category_url in category_urls_list:
-    category_name, category_books_urls = (
-        get_books_urls_from_category(category_url)
-    )
+    for category_url in category_urls_list:
+        category_name, category_books_urls = (
+            get_books_urls_from_category(category_url)
+        )
 
-    # Créer le dossier images de la catégorie
-    category_images_folder = create_images_folder_by_category(category_name)
+        # Créer le dossier images de la catégorie
+        category_images_folder = create_images_folder_by_category(category_name)
 
-    # Scraper les livres et enregistrer les données
-    data = [scrape_book(url, category_images_folder, category_name)
-            for url in category_books_urls]
+        # Scraper les livres et enregistrer les données
+        data = [scrape_book(url, category_images_folder, category_name)
+                for url in category_books_urls]
 
-    csv_filename = os.path.join(extracted_data_folder, f"{category_name}.csv")
-    save_book_data_in_csv_file(csv_filename, data)
+        csv_filename = os.path.join(extracted_data_folder, f"{category_name}.csv")
+        save_book_data_in_csv_file(csv_filename, data)
+
+main()
