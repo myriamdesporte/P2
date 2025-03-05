@@ -4,12 +4,15 @@ import csv
 import os
 from PIL import Image
 from io import BytesIO
-#from slugify import slugify
 
 
 def create_soup_object(url):
     """Crée un objet BeautifulSoup à partir d'une URL"""
     response = requests.get(url)
+
+    # Forcer l'encodage en UTF-8
+    response.encoding = "utf-8"
+
     soup = BeautifulSoup(response.text, 'html.parser')
     return soup
 
@@ -83,7 +86,6 @@ def download_and_process_image(
 
 def clean_text(text):
     """Supprime le caractère problématique dans un nom de fichier"""
-    #text = slugify(text)
     text = text.replace('/', '-')
     return text
 
@@ -97,8 +99,8 @@ def scrape_book(book_url, category_name):
 
     table = soup.find("table", class_="table table-striped")
     universal_product_code = table.find_all("td")[0].string
-    price_including_tax = table.find_all("td")[3].string.strip("Â")
-    price_excluding_tax = table.find_all("td")[2].string.strip("Â")
+    price_including_tax = table.find_all("td")[3].string
+    price_excluding_tax = table.find_all("td")[2].string
 
     number_available = (
         soup.find("p", class_="instock availability")
@@ -195,7 +197,7 @@ def main():
     os.makedirs(extracted_data_folder, exist_ok=True)
 
     # Récupérer les urls des catégories
-    category_urls_list = get_category_urls(limit=None)
+    category_urls_list = get_category_urls(limit=2)
 
     for category_url in category_urls_list:
         category_name, category_books_urls = (
