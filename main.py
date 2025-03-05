@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import os
+from PIL import Image
+from io import BytesIO
 
 
 def create_soup_object(url):
@@ -62,14 +64,20 @@ def create_images_folder_by_category(category_name):
     return folder_path
 
 
-def download_book_image(image_url, save_path):
-    """Télécharge et sauvegarde l'image d'un livre"""
+def download_and_process_image(
+        image_url, save_path, max_size=(300, 300), quality=85
+):
+    """Télécharge, redimensionne et compresse l'image d'un livre"""
     response = requests.get(image_url)
 
-    with open(save_path, "wb") as file:
-        file.write(response.content)
+    # Ouvrir l'image avec Pillow
+    image = Image.open(BytesIO(response.content))
 
-    return
+    # Redimensionner l'image
+    image.thumbnail(max_size)
+
+    # Sauvegarde l'image avec compression
+    image.save(save_path, "JPEG", quality=quality)
 
 
 def clean_filename(filename):
@@ -127,7 +135,7 @@ def scrape_book(book_url, category_folder, category_name):
     # Téléchargement de l'image
     image_filename = f"{clean_filename(title)}.jpg"
     image_path = os.path.join(category_folder, image_filename)
-    download_book_image(image_url, image_path)
+    download_and_process_image(image_url, image_path)
 
     return [
         book_url,
@@ -177,7 +185,7 @@ def main():
     os.makedirs(extracted_data_folder, exist_ok=True)
 
     # Récupérer les urls des catégories
-    category_urls_list = get_category_urls(limit=2)
+    category_urls_list = get_category_urls(limit=5)
 
     for category_url in category_urls_list:
         category_name, category_books_urls = (
