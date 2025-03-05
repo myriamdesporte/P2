@@ -19,7 +19,7 @@ def get_category_urls(limit = None):
     for url in soup.select("div.side_categories ul li a"):
         category_urls.append("http://books.toscrape.com/" + url["href"])
 
-    return category_urls[1:limit] if limit else category_urls[1:]
+    return category_urls[4:limit] if limit else category_urls[1:]
 
 def get_books_urls_from_category(category_url, books_urls = None):
     """Fonction récursive qui récupère les URLS de tous les livres d'une catégorie"""
@@ -59,6 +59,10 @@ def download_book_image(image_url, save_path):
 
     return
 
+def clean_filename(filename):
+    """Supprime le caractère problématique dans un nom de fichier"""
+    return filename.replace('/', '-')
+
 def scrape_book(book_url, category_folder, category_name):
     """Extrait les données d'un livre à partir de l'URL produit"""
     soup = create_soup_object(book_url)
@@ -79,7 +83,7 @@ def scrape_book(book_url, category_folder, category_name):
     image_url = image_relative_url.replace("../../", "http://books.toscrape.com/")
 
     # Téléchargement de l'image
-    image_filename = f"{title}.jpg"
+    image_filename = f"{clean_filename(title)}.jpg"
     image_path = os.path.join(category_folder, image_filename)
     download_book_image(image_url, image_path)
 
@@ -113,7 +117,7 @@ extracted_data_folder = os.path.join("Books data", "Extracted data")
 os.makedirs(extracted_data_folder, exist_ok=True)
 
 # Récupérer les urls des catégories
-category_urls_list = get_category_urls(limit=2)
+category_urls_list = get_category_urls(limit=5)
 
 for category_url in category_urls_list:
     category_name, category_books_urls = get_books_urls_from_category(category_url)
