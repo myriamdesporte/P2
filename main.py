@@ -110,18 +110,18 @@ def scrape_book_data(book_url):
     )
     image_url = urljoin("http://books.toscrape.com/", image_relative_url)
 
-    return [
-        product_page_url,
-        universal_product_code,
-        title,
-        price_including_tax,
-        price_excluding_tax,
-        number_available,
-        product_description,
-        category,
-        review_rating,
-        image_url
-    ]
+    return {
+        "product_page_url": product_page_url,
+        "universal_product_code (upc)": universal_product_code,
+        "title": title,
+        "price_including_tax": price_including_tax,
+        "price_excluding_tax": price_excluding_tax,
+        "number_available": number_available,
+        "product_description": product_description,
+        "category": category,
+        "review_rating": review_rating,
+        "image_url": image_url
+    }
 
 
 # --- TRANSFORMATION ---
@@ -168,7 +168,7 @@ def create_folder(path):
     return path
 
 
-def save_book_data_in_csv_file(filename, headers, data):
+def save_book_data_in_csv_file(data, filename):
     """Ajoute les données d'un livre dans un fichier csv
     (crée s'il n'existe pas déjà)"""
     file_exists = os.path.isfile(filename)
@@ -176,15 +176,15 @@ def save_book_data_in_csv_file(filename, headers, data):
     with open(filename, "a", newline="", encoding="utf-8-sig") as file:
         writer = csv.writer(file)
         if not file_exists:
-            writer.writerow(headers)
-        writer.writerows(data)
+            writer.writerow(list(data.keys()))
+        writer.writerow(list(data.values()))
 
 
-def save_image(image_url, title, category_folder):
+def save_image(data, category_folder):
     """Télécharge et sauvegarde l'image d'un livre"""
-    image_filename = f"{clean_text(title)}.jpg"
+    image_filename = f"{clean_text(data["title"])}.jpg"
     image_path = os.path.join(category_folder, image_filename)
-    download_and_process_image(image_url, image_path)
+    download_and_process_image(data["image_url"], image_path)
 
 
 # --- MAIN ---
@@ -207,16 +207,6 @@ def main():
         category_csv_file = (
             os.path.join(csv_files_folder, f"{category_name}.csv")
         )
-        headers = ["Page url",
-                   "UPC",
-                   "Title",
-                   "Price Including Tax",
-                   "Price Excluding Tax",
-                   "Availability",
-                   "Description",
-                   "Category",
-                   "Review rating",
-                   "Image url"]
 
         category_images_folder = create_folder(
             os.path.join(images_folder, category_name)
@@ -225,8 +215,14 @@ def main():
         # Extraction des données, transformation et sauvegarde
         for book_url in category_books_urls:
             book_data = scrape_book_data(book_url)
-            save_book_data_in_csv_file(category_csv_file, headers, book_data)
-            save_image(book_data[-1], book_data[2], category_images_folder)
+            save_book_data_in_csv_file(
+                book_data,
+                category_csv_file
+            )
+            save_image(
+                book_data,
+                category_images_folder
+            )
 
 
 main()
