@@ -180,8 +180,8 @@ def save_book_data_in_csv_file(filename, headers, data):
         writer.writerows(data)
 
 
-def save_image(image_url, category_folder, title):
-    # Télécharge l'image dans le dossier de la catégorie
+def save_image(image_url, title, category_folder):
+    """Télécharge et sauvegarde l'image d'un livre"""
     image_filename = f"{clean_text(title)}.jpg"
     image_path = os.path.join(category_folder, image_filename)
     download_and_process_image(image_url, image_path)
@@ -194,10 +194,10 @@ def main():
     csv_files_folder = create_folder("Books data/CSV files")
     images_folder = create_folder("Books data/Images")
 
-    # Récupérer les urls des catégories
+    # Extraction des urls des catégories
     category_urls_list = get_category_urls(limit=2)
 
-    # Pour chaque catégorie, on récupère les urls des livres
+    # Pour chaque catégorie, extraction des urls des livres
     for category_url in category_urls_list:
         category_name, category_books_urls = (
             get_books_urls_from_category(category_url)
@@ -222,14 +222,11 @@ def main():
             os.path.join(images_folder, category_name)
         )
 
-        # Extraction des données et traitement des livres
+        # Extraction des données, transformation et sauvegarde
         for book_url in category_books_urls:
-            # Extraction des données du livre
             book_data = scrape_book_data(book_url)
             save_book_data_in_csv_file(category_csv_file, headers, book_data)
-
-            # Enregistrement de l'image
-            save_image(book_data[-1], category_images_folder, book_data[2])
+            save_image(book_data[-1], book_data[2], category_images_folder)
 
 
 main()
