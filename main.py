@@ -162,6 +162,12 @@ def download_and_process_image(
 
 # --- SAUVEGARDE ---
 
+def create_folder(path):
+    """Crée un dossier s'il n'existe pas déjà"""
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 def create_images_folder_by_category(category_name):
     """Crée le dossier pour stocker les fichiers images d'une catégorie"""
     folder_path = os.path.join("Books data", "Images", f"{category_name}")
@@ -207,9 +213,9 @@ def save_image(image_url, category_folder, title):
 # --- MAIN ---
 
 def main():
-    # Création du fichier Extracted_data
-    extracted_data_folder = os.path.join("Books data", "CSV files")
-    os.makedirs(extracted_data_folder, exist_ok=True)
+    # Création des dossiers "CSV files" et "Images"
+    csv_files_folder = create_folder("Books data/CSV files")
+    images_folder = create_folder("Books data/Images")
 
     # Récupérer les urls des catégories
     category_urls_list = get_category_urls(limit=2)
@@ -220,9 +226,12 @@ def main():
             get_books_urls_from_category(category_url)
         )
 
-        # Créer le dossier images de la catégorie
-        category_images_folder = (
-            create_images_folder_by_category(category_name)
+        # Création du fichier csv et du dossier image de la catégorie
+        category_csv_file = (
+            os.path.join(csv_files_folder, f"{category_name}.csv")
+        )
+        category_images_folder = create_folder(
+            os.path.join(images_folder, category_name)
         )
 
         # Extraction des données et traitement des livres
@@ -238,12 +247,7 @@ def main():
             data.append(book_data)
 
         # Enregistrer les données dans un fichier CSV
-
-        csv_filename = os.path.join(
-            extracted_data_folder, f"{category_name}.csv"
-        )
-
-        save_book_data_in_csv_file(csv_filename, data)
+        save_book_data_in_csv_file(category_csv_file, data)
 
 
 main()
