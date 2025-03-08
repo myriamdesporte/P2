@@ -128,21 +128,8 @@ def scrape_book_data(book_url):
     )
 
     rating_tag = soup.find('p', class_='star-rating')
-    review_rating = rating_tag['class'][1] if rating_tag else None
-
-    match review_rating:
-        case "One":
-            review_stars = "★☆☆☆☆"
-        case "Two":
-            review_stars = "★★☆☆☆"
-        case "Three":
-            review_stars = "★★★☆☆"
-        case "Four":
-            review_stars = "★★★★☆"
-        case "Five":
-            review_stars = "★★★★★"
-        case _:
-            review_stars = "Aucune note"
+    rating_level = rating_tag['class'][1] if rating_tag else None
+    review_rating = transform_rating_to_stars(rating_level)
 
     image_relative_url = (
         soup.find("div", class_="item active")
@@ -159,9 +146,21 @@ def scrape_book_data(book_url):
         number_available,
         product_description,
         category,
-        review_stars,
+        review_rating,
         image_url
     ]
+
+
+def transform_rating_to_stars(rating_level):
+    """Convertit une notation en texte ('One', 'Two', etc.) en étoiles."""
+    star_map = {
+        "One": "★☆☆☆☆",
+        "Two": "★★☆☆☆",
+        "Three": "★★★☆☆",
+        "Four": "★★★★☆",
+        "Five": "★★★★★"
+    }
+    return star_map.get(rating_level, 'No rating')
 
 
 def save_book_data_in_csv_file(filename, data):
