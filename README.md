@@ -63,7 +63,7 @@ python main.py
 
 Cela extraira les données des livres de toutes les catégories et les enregistrera
 dans des fichiers CSV organisés par catégorie et stockés dans le dossier
-`Books_data/Extracted_data`.
+`Books_data/CSV files`.
 
 Les images des livres seront téléchargées et rangées par catégorie dans le dossier
 `Books_data/Images`.

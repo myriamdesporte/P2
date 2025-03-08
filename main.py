@@ -208,7 +208,7 @@ def save_image(image_url, category_folder, title):
 
 def main():
     # Création du fichier Extracted_data
-    extracted_data_folder = os.path.join("Books data", "Extracted data")
+    extracted_data_folder = os.path.join("Books data", "CSV files")
     os.makedirs(extracted_data_folder, exist_ok=True)
 
     # Récupérer les urls des catégories
