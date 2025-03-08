@@ -21,8 +21,8 @@ def create_soup_object(url):
 
 
 def get_category_urls(limit=None):
-    """Récupère les URLS de toutes les catégories
-    (ou une partie) sur la page d'accueil"""
+    """Récupère les URLS de toutes les catégories (ou une partie)
+    sur la page d'accueil"""
     home_url = "http://books.toscrape.com/index.html"
     soup = create_soup_object(home_url)
 
@@ -168,39 +168,16 @@ def create_folder(path):
     return path
 
 
-def create_images_folder_by_category(category_name):
-    """Crée le dossier pour stocker les fichiers images d'une catégorie"""
-    folder_path = os.path.join("Books data", "Images", f"{category_name}")
-    os.makedirs(folder_path, exist_ok=True)
-    return folder_path
+def save_book_data_in_csv_file(filename, headers, data):
+    """Ajoute les données d'un livre dans un fichier csv
+    (crée s'il n'existe pas déjà)"""
+    file_exists = os.path.isfile(filename)
 
-
-def save_book_data_in_csv_file(filename, data):
-    """Sauvegarde les données d'un livre dans un fichier csv"""
-
-    headers = ["Page url",
-               "UPC",
-               "Title",
-               "Price Including Tax",
-               "Price Excluding Tax",
-               "Availability",
-               "Description",
-               "Category",
-               "Review rating",
-               "Image url"]
-
-    # Crée le dossier parent si nécessaire
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-
-    with open(filename, "w", newline="", encoding="utf-8-sig") as file:
+    with open(filename, "a", newline="", encoding="utf-8-sig") as file:
         writer = csv.writer(file)
-        writer.writerow(headers)
+        if not file_exists:
+            writer.writerow(headers)
         writer.writerows(data)
-
-    print(
-        f"Données de {len(data)} livre(s) extraite(s) "
-        f"et sauvegardée(s) dans {filename}"
-    )
 
 
 def save_image(image_url, category_folder, title):
@@ -230,24 +207,29 @@ def main():
         category_csv_file = (
             os.path.join(csv_files_folder, f"{category_name}.csv")
         )
+        headers = ["Page url",
+                   "UPC",
+                   "Title",
+                   "Price Including Tax",
+                   "Price Excluding Tax",
+                   "Availability",
+                   "Description",
+                   "Category",
+                   "Review rating",
+                   "Image url"]
+
         category_images_folder = create_folder(
             os.path.join(images_folder, category_name)
         )
 
         # Extraction des données et traitement des livres
-        data = []
         for book_url in category_books_urls:
             # Extraction des données du livre
             book_data = scrape_book_data(book_url)
+            save_book_data_in_csv_file(category_csv_file, headers, book_data)
 
             # Enregistrement de l'image
             save_image(book_data[-1], category_images_folder, book_data[2])
-
-            # Ajout des données du livre à la liste
-            data.append(book_data)
-
-        # Enregistrer les données dans un fichier CSV
-        save_book_data_in_csv_file(category_csv_file, data)
 
 
 main()
