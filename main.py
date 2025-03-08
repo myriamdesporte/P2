@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 import csv
 import os
 from PIL import Image
@@ -90,24 +91,29 @@ def clean_text(text):
     return text
 
 
-def scrape_book(book_url, category_name):
+def scrape_book_data(book_url):
     """Extrait les données d'un livre à partir de l'URL produit"""
     soup = create_soup_object(book_url)
 
     # Extraction des informations nécessaires
-    title = soup.find("h1").string
+    product_page_url = book_url
 
-    table = soup.find("table", class_="table table-striped")
-    universal_product_code = table.find_all("td")[0].string
-    price_including_tax = table.find_all("td")[3].string
-    price_excluding_tax = table.find_all("td")[2].string
+    def get_table_value(label):
+        value = ((soup.find('th', string=label)
+                 .find_next('td'))
+                 .text.strip())
+        return value
 
-    number_available = (
-        soup.find("p", class_="instock availability")
-        .text.strip()
-    )
+    universal_product_code = get_table_value("UPC")
 
-    print(category_name, title)
+    title = soup.find("h1").text.strip()
+    print(title)
+
+    price_including_tax = get_table_value("Price (incl. tax)")
+
+    price_excluding_tax = get_table_value("Price (excl. tax)")
+
+    number_available = get_table_value("Availability")
 
     description = soup.find('div', id='product_description')
     if description:
@@ -115,7 +121,11 @@ def scrape_book(book_url, category_name):
     else:
         product_description = "Aucune description disponible"
 
-    category = category_name
+    category = (
+        soup.find('ul', class_='breadcrumb')
+        .find_all('li')[2]
+        .text.strip()
+    )
 
     rating_tag = soup.find('p', class_='star-rating')
     review_rating = rating_tag['class'][1] if rating_tag else None
@@ -138,12 +148,10 @@ def scrape_book(book_url, category_name):
         soup.find("div", class_="item active")
         .find("img")["src"]
     )
-    image_url = image_relative_url.replace(
-        "../../", "http://books.toscrape.com/"
-    )
+    image_url = urljoin("http://books.toscrape.com/", image_relative_url)
 
     return [
-        book_url,
+        product_page_url,
         universal_product_code,
         title,
         price_including_tax,
@@ -199,6 +207,7 @@ def main():
     # Récupérer les urls des catégories
     category_urls_list = get_category_urls(limit=2)
 
+    # Pour chaque catégorie, on récupère les urls des livres
     for category_url in category_urls_list:
         category_name, category_books_urls = (
             get_books_urls_from_category(category_url)
@@ -211,9 +220,9 @@ def main():
 
         # Extraction des données et traitement des livres
         data = []
-        for url in category_books_urls:
+        for book_url in category_books_urls:
             # Extraction des données du livre
-            book_data = scrape_book(url, category_name)
+            book_data = scrape_book_data(book_url)
 
             # Enregistrement de l'image
             save_image(book_data[-1], category_images_folder, book_data[2])
