@@ -7,6 +7,8 @@ from PIL import Image
 from io import BytesIO
 
 
+# --- EXTRACTION ---
+
 def create_soup_object(url):
     """Crée un objet BeautifulSoup à partir d'une URL"""
     response = requests.get(url)
@@ -60,35 +62,6 @@ def get_books_urls_from_category(category_url, books_urls=None):
         return get_books_urls_from_category(next_page_url, books_urls)
 
     return category_name, books_urls
-
-
-def create_images_folder_by_category(category_name):
-    """Crée le dossier pour stocker les fichiers images d'une catégorie"""
-    folder_path = os.path.join("Books data", "Images", f"{category_name}")
-    os.makedirs(folder_path, exist_ok=True)
-    return folder_path
-
-
-def download_and_process_image(
-        image_url, save_path, max_size=(300, 300), quality=85
-):
-    """Télécharge, redimensionne et compresse l'image d'un livre"""
-    response = requests.get(image_url)
-
-    # Ouvrir l'image avec Pillow
-    image = Image.open(BytesIO(response.content))
-
-    # Redimensionner l'image
-    image.thumbnail(max_size)
-
-    # Sauvegarde l'image avec compression
-    image.save(save_path, "JPEG", quality=quality)
-
-
-def clean_text(text):
-    """Supprime le caractère problématique dans un nom de fichier"""
-    text = text.replace('/', '-')
-    return text
 
 
 def scrape_book_data(book_url):
@@ -151,6 +124,14 @@ def scrape_book_data(book_url):
     ]
 
 
+# --- TRANSFORMATION ---
+
+def clean_text(text):
+    """Supprime le caractère problématique dans un nom de fichier"""
+    text = text.replace('/', '-')
+    return text
+
+
 def transform_rating_to_stars(rating_level):
     """Convertit une notation en texte ('One', 'Two', etc.) en étoiles."""
     star_map = {
@@ -161,6 +142,31 @@ def transform_rating_to_stars(rating_level):
         "Five": "★★★★★"
     }
     return star_map.get(rating_level, 'No rating')
+
+
+def download_and_process_image(
+        image_url, save_path, max_size=(300, 300), quality=85
+):
+    """Télécharge, redimensionne et compresse l'image d'un livre"""
+    response = requests.get(image_url)
+
+    # Ouvrir l'image avec Pillow
+    image = Image.open(BytesIO(response.content))
+
+    # Redimensionner l'image
+    image.thumbnail(max_size)
+
+    # Sauvegarde l'image avec compression
+    image.save(save_path, "JPEG", quality=quality)
+
+
+# --- SAUVEGARDE ---
+
+def create_images_folder_by_category(category_name):
+    """Crée le dossier pour stocker les fichiers images d'une catégorie"""
+    folder_path = os.path.join("Books data", "Images", f"{category_name}")
+    os.makedirs(folder_path, exist_ok=True)
+    return folder_path
 
 
 def save_book_data_in_csv_file(filename, data):
@@ -197,6 +203,8 @@ def save_image(image_url, category_folder, title):
     image_path = os.path.join(category_folder, image_filename)
     download_and_process_image(image_url, image_path)
 
+
+# --- MAIN ---
 
 def main():
     # Création du fichier Extracted_data
