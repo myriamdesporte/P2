@@ -163,21 +163,41 @@ def download_and_process_image(
 # --- SAUVEGARDE ---
 
 def create_folder(path):
-    """Crée un dossier s'il n'existe pas déjà"""
+    """Crée un dossier s'il n'existe pas déjà."""
     os.makedirs(path, exist_ok=True)
     return path
 
 
-def save_book_data_in_csv_file(data, filename):
-    """Ajoute les données d'un livre dans un fichier csv
-    (crée s'il n'existe pas déjà)"""
-    file_exists = os.path.isfile(filename)
+def save_book_data_in_csv_file(data):
+    """Enregistre les données d'un livre dans un fichier csv.
 
+    - Vérifie si le fichier existe et s'il contient déjà le livre.
+    - Ajoute les en-têtes si le fichier est créé pour la première fois.
+    """
+
+    csv_files_folder = create_folder("Books data/CSV files")
+    filename = os.path.join(csv_files_folder, f"{data["category"]}.csv")
+    file_exists = os.path.isfile(filename)
+    new_row = list(data.values())
+
+    # Vérifie si le livre est déjà enregistré
+    if file_exists:
+        with open(filename, "r", encoding="utf-8-sig") as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if row == new_row:
+                    return  # Évite l'ajout d'un doublon
+
+    # Ouvre le fichier en. mode ajout et écrit les données
     with open(filename, "a", newline="", encoding="utf-8-sig") as file:
         writer = csv.writer(file)
+
+        # Ajoute les en-têtes si le fichier est créé pour la première fois
         if not file_exists:
             writer.writerow(list(data.keys()))
-        writer.writerow(list(data.values()))
+
+        # Écrit les données du livre dans le fichier
+        writer.writerow(list(new_row))
 
 
 def save_image(data, category_folder):
@@ -190,8 +210,7 @@ def save_image(data, category_folder):
 # --- MAIN ---
 
 def main():
-    # Création des dossiers "CSV files" et "Images"
-    csv_files_folder = create_folder("Books data/CSV files")
+    # Création du dossier "Images"
     images_folder = create_folder("Books data/Images")
 
     # Extraction des urls des catégories
@@ -203,11 +222,7 @@ def main():
             get_books_urls_from_category(category_url)
         )
 
-        # Création du fichier csv et du dossier image de la catégorie
-        category_csv_file = (
-            os.path.join(csv_files_folder, f"{category_name}.csv")
-        )
-
+        # Création du dossier image de la catégorie
         category_images_folder = create_folder(
             os.path.join(images_folder, category_name)
         )
@@ -215,10 +230,7 @@ def main():
         # Extraction des données, transformation et sauvegarde
         for book_url in category_books_urls:
             book_data = scrape_book_data(book_url)
-            save_book_data_in_csv_file(
-                book_data,
-                category_csv_file
-            )
+            save_book_data_in_csv_file(book_data)
             save_image(
                 book_data,
                 category_images_folder
