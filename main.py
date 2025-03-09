@@ -23,9 +23,10 @@ def get_category_urls(limit=None):
     soup = create_soup_object(home_url)
 
     category_urls = []
+    base_url = urljoin(home_url, "/")
 
     for url in soup.select("div.side_categories ul li a"):
-        category_urls.append("http://books.toscrape.com/" + url["href"])
+        category_urls.append(urljoin(base_url, url["href"]))
 
     return category_urls[1:limit] if limit else category_urls[1:]
 
@@ -42,19 +43,13 @@ def get_books_urls_from_category(category_url, books_urls=None):
 
     # Extrait les URLs des livres de la page actuelle
     for url in soup.select("h3 a"):
-        books_urls.append(
-            url["href"].replace(
-                "../../..", "http://books.toscrape.com/catalogue"
-            )
-        )
+        books_urls.append(urljoin(category_url, url["href"]))
 
     # Si un bouton 'next' est présent, appelle la fonction récursivement
     next_page = soup.select_one("li.next a")
 
     if next_page:
-        next_page_url = (
-                category_url.rsplit("/", 1)[0] + "/" + next_page["href"]
-        )
+        next_page_url = urljoin(category_url, next_page["href"])
         return get_books_urls_from_category(next_page_url, books_urls)
 
     return category_name, books_urls
