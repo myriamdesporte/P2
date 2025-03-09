@@ -54,8 +54,8 @@ pip install -r requirements.txt
 
 ## Comment démarrer le script
 
-Une fois les dépendances installées et l'environnement virtuel activé,
-vous pouvez démarrer le script avec la commande suivante:
+Une fois l'environnement virtuel activé et les dépendances installées,
+vous pouvez démarrer le script avec la commande suivante :
 
 ```
 python main.py
@@ -68,6 +68,13 @@ dans des fichiers CSV organisés par catégorie et stockés dans le dossier
 Les images des livres seront téléchargées et rangées par catégorie dans le dossier
 `Books_data/Images`.
 
+> [!TIP]  
+> Pour produire un nombre limité de données, vous pouvez restreindre le nombre de catégories 
+> analysées en passant un entier de 1 à 49 en argument de `main()` dans le script `main.py`
+> avant son execution.
+> 
+> Par exemple, remplacer `main()` par `main(5)` dans le script permet de récupérer les données 
+> et images des cinq premières catégories seulement, de 'Travel' à 'Classics'.
 
 ## Vérification de la syntaxe avec flake8
 

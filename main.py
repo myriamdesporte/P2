@@ -18,7 +18,14 @@ def create_soup_object(url):
 
 
 def get_category_urls(limit=None):
-    """Récupère les URLS des catégories sur la page d'accueil."""
+    """Récupère les URLs des catégories sur la page d'accueil.
+
+        Args :
+            limit : nombre maximal de catégories à récupérer dans l'ordre,
+            entier strictement compris entre 0 et 50.
+            Sinon ou si None : récupère toutes les catégories.
+        """
+
     home_url = "http://books.toscrape.com/index.html"
     soup = create_soup_object(home_url)
 
@@ -28,7 +35,10 @@ def get_category_urls(limit=None):
     for url in soup.select("div.side_categories ul li a"):
         category_urls.append(urljoin(base_url, url["href"]))
 
-    return category_urls[1:limit] if limit else category_urls[1:]
+    if limit and 0 < limit < 50:
+        return category_urls[1:limit + 1]
+    else:
+        return category_urls[1:]
 
 
 def get_books_urls_from_category(category_url, books_urls=None):
@@ -208,11 +218,11 @@ def save_book_image_in_category_images_folder(data):
 
 # --- MAIN ---
 
-def main():
+def main(limit=None):
     """Exécute le scraping et l'extraction des données des livres."""
 
     # Extrait les urls des catégories
-    category_urls_list = get_category_urls(limit=2)
+    category_urls_list = get_category_urls(limit=limit)
 
     # Extrait les urls des livres de chaque catégorie
     for category_url in category_urls_list:
@@ -225,6 +235,14 @@ def main():
             book_data = scrape_book_data(book_url)
             save_book_data_in_csv_file(book_data)
             save_book_image_in_category_images_folder(book_data)
+
+        print("--------------------------------------------------------------")
+        print(f"Données de {len(category_books_urls)} livre(s) de "
+              f"la catégorie '{category_name}' enregistrées dans "
+              f"Books data/CSV files/{category_name}.csv")
+        print(f"Image(s) de la catégorie '{category_name}' enregistrée(s) "
+              f"dans Books data/Images/{category_name}")
+        print("--------------------------------------------------------------")
 
 
 main()
