@@ -145,7 +145,7 @@ def transform_rating_to_stars(rating_level):
 
 
 def download_and_process_image(
-        image_url, save_path, max_size=(300, 300), quality=85
+        image_url, save_path, max_size=(300, 300), quality=65
 ):
     """Télécharge, redimensionne et compresse l'image d'un livre"""
     response = requests.get(image_url)
@@ -200,19 +200,24 @@ def save_book_data_in_csv_file(data):
         writer.writerow(list(new_row))
 
 
-def save_image(data, category_folder):
-    """Télécharge et sauvegarde l'image d'un livre"""
+def save_book_image_in_category_images_folder(data):
+    """Télécharge et sauvegarde l'image d'un livre."""
+
+    # Crée le dossier de la catégorie s'il n'existe pas
+    folder_path = f"Books data/Images/{data["category"]}"
+    category_images_folder = create_folder(folder_path)
+
+    # Génère le chemin de sauvegarde de l'image
     image_filename = f"{clean_text(data["title"])}.jpg"
-    image_path = os.path.join(category_folder, image_filename)
+    image_path = os.path.join(category_images_folder, image_filename)
+
+    # Télécharge et traite l'image avant de l'enregistrer
     download_and_process_image(data["image_url"], image_path)
 
 
 # --- MAIN ---
 
 def main():
-    # Création du dossier "Images"
-    images_folder = create_folder("Books data/Images")
-
     # Extraction des urls des catégories
     category_urls_list = get_category_urls(limit=2)
 
@@ -222,19 +227,11 @@ def main():
             get_books_urls_from_category(category_url)
         )
 
-        # Création du dossier image de la catégorie
-        category_images_folder = create_folder(
-            os.path.join(images_folder, category_name)
-        )
-
         # Extraction des données, transformation et sauvegarde
         for book_url in category_books_urls:
             book_data = scrape_book_data(book_url)
             save_book_data_in_csv_file(book_data)
-            save_image(
-                book_data,
-                category_images_folder
-            )
+            save_book_image_in_category_images_folder(book_data)
 
 
 main()
