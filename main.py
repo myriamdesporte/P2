@@ -10,19 +10,15 @@ from io import BytesIO
 # --- EXTRACTION ---
 
 def create_soup_object(url):
-    """Crée un objet BeautifulSoup à partir d'une URL"""
+    """Crée un objet BeautifulSoup à partir d'une URL."""
     response = requests.get(url)
-
-    # Forcer l'encodage en UTF-8
-    response.encoding = "utf-8"
-
+    response.encoding = "utf-8"  # Force l'encodage en UTF-8
     soup = BeautifulSoup(response.text, 'html.parser')
     return soup
 
 
 def get_category_urls(limit=None):
-    """Récupère les URLS de toutes les catégories (ou une partie)
-    sur la page d'accueil"""
+    """Récupère les URLS des catégories sur la page d'accueil."""
     home_url = "http://books.toscrape.com/index.html"
     soup = create_soup_object(home_url)
 
@@ -35,16 +31,16 @@ def get_category_urls(limit=None):
 
 
 def get_books_urls_from_category(category_url, books_urls=None):
-    """Fonction récursive récupérant les URLS des livres d'une catégorie"""
+    """Récupère les URLS de tous les livres d'une catégorie."""
 
     if books_urls is None:
         books_urls = []
     soup = create_soup_object(category_url)
 
-    # Extraction du titre de la catégorie
+    # Extrait le titre de la catégorie
     category_name = soup.find("h1").string
 
-    # Extraction des URLs des livres de la page actuelle
+    # Extrait les URLs des livres de la page actuelle
     for url in soup.select("h3 a"):
         books_urls.append(
             url["href"].replace(
@@ -52,7 +48,7 @@ def get_books_urls_from_category(category_url, books_urls=None):
             )
         )
 
-    # Si bouton next, on appelle la fonction récursivement
+    # Si un bouton 'next' est présent, appelle la fonction récursivement
     next_page = soup.select_one("li.next a")
 
     if next_page:
@@ -65,10 +61,10 @@ def get_books_urls_from_category(category_url, books_urls=None):
 
 
 def scrape_book_data(book_url):
-    """Extrait les données d'un livre à partir de l'URL produit"""
+    """Extrait les données d'un livre à partir de l'URL produit."""
     soup = create_soup_object(book_url)
 
-    # Extraction des informations nécessaires
+    # Extrait les informations nécessaires
     product_page_url = book_url
 
     def get_table_value(label):
@@ -127,7 +123,7 @@ def scrape_book_data(book_url):
 # --- TRANSFORMATION ---
 
 def clean_text(text):
-    """Supprime le caractère problématique dans un nom de fichier"""
+    """Remplace / par un tiret pour utiliser le texte en nom de fichier."""
     text = text.replace('/', '-')
     return text
 
@@ -147,14 +143,10 @@ def transform_rating_to_stars(rating_level):
 def download_and_process_image(
         image_url, save_path, max_size=(300, 300), quality=65
 ):
-    """Télécharge, redimensionne et compresse l'image d'un livre"""
+    """Télécharge, redimensionne et compresse l'image d'un livre."""
     response = requests.get(image_url)
-
-    # Ouvrir l'image avec Pillow
-    image = Image.open(BytesIO(response.content))
-
-    # Redimensionner l'image
-    image.thumbnail(max_size)
+    image = Image.open(BytesIO(response.content))  # Ouvre l'image avec Pillow
+    image.thumbnail(max_size)  # Redimensionne l'image
 
     # Sauvegarde l'image avec compression
     image.save(save_path, "JPEG", quality=quality)
@@ -171,12 +163,16 @@ def create_folder(path):
 def save_book_data_in_csv_file(data):
     """Enregistre les données d'un livre dans un fichier csv.
 
-    - Vérifie si le fichier existe et s'il contient déjà le livre.
+    - Vérifie si le fichier existe et contient déjà le livre.
     - Ajoute les en-têtes si le fichier est créé pour la première fois.
     """
 
+    # Crée le dossier 'CSV files' s'il n'existe pas
     csv_files_folder = create_folder("Books data/CSV files")
-    filename = os.path.join(csv_files_folder, f"{data["category"]}.csv")
+
+    # Génère le chemin de sauvegarde du fichier
+    filename = os.path.join(csv_files_folder, f"{data['category']}.csv")
+
     file_exists = os.path.isfile(filename)
     new_row = list(data.values())
 
@@ -188,7 +184,7 @@ def save_book_data_in_csv_file(data):
                 if row == new_row:
                     return  # Évite l'ajout d'un doublon
 
-    # Ouvre le fichier en. mode ajout et écrit les données
+    # Ouvre le fichier en mode ajout et écrit les données
     with open(filename, "a", newline="", encoding="utf-8-sig") as file:
         writer = csv.writer(file)
 
@@ -204,30 +200,32 @@ def save_book_image_in_category_images_folder(data):
     """Télécharge et sauvegarde l'image d'un livre."""
 
     # Crée le dossier de la catégorie s'il n'existe pas
-    folder_path = f"Books data/Images/{data["category"]}"
+    folder_path = f"Books data/Images/{data['category']}"
     category_images_folder = create_folder(folder_path)
 
     # Génère le chemin de sauvegarde de l'image
-    image_filename = f"{clean_text(data["title"])}.jpg"
+    image_filename = f"{clean_text(data['title'])}.jpg"
     image_path = os.path.join(category_images_folder, image_filename)
 
     # Télécharge et traite l'image avant de l'enregistrer
-    download_and_process_image(data["image_url"], image_path)
+    download_and_process_image(data['image_url'], image_path)
 
 
 # --- MAIN ---
 
 def main():
-    # Extraction des urls des catégories
+    """Exécute le scraping et l'extraction des données des livres."""
+
+    # Extrait les urls des catégories
     category_urls_list = get_category_urls(limit=2)
 
-    # Pour chaque catégorie, extraction des urls des livres
+    # Extrait les urls des livres de chaque catégorie
     for category_url in category_urls_list:
         category_name, category_books_urls = (
             get_books_urls_from_category(category_url)
         )
 
-        # Extraction des données, transformation et sauvegarde
+        # Extrait, transforme et sauvegarde les données de chaque livre
         for book_url in category_books_urls:
             book_data = scrape_book_data(book_url)
             save_book_data_in_csv_file(book_data)
